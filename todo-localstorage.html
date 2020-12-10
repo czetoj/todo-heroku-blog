@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>To-do List localStorage haszn&aacute;lat&aacute;val</title>
+    <style>
+    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist/katex.min.css"
+        integrity="sha384-yFRtMMDnQtDRO8rLpMIKrtPCD5jdktao2TV19YiZYWMDkUR5GQZR/NOVTdquEx1j" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet"
+        type="text/css">
+    <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+    <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+    </style>
+    <style>
+        .task-list-item {
+            list-style-type: none;
+        }
+
+        .task-list-item-checkbox {
+            margin-left: -20px;
+            vertical-align: middle;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+
+</head>
+
+<body class="vscode-body vscode-light">
+    <h1 id="to-do-list-localstorage-használatával">To-do List localStorage használatával</h1>
+    <h2 id="mi-a-cél">Mi a cél?</h2>
+    <a href="https://todo-czetoj.herokuapp.com"><img src="./todolist.png" alt="Todo list" style="width: 70vw;"></a>
+    <h2 id="megvalósítás">Megvalósítás</h2>
+    <p>A localStorage-ot mint helyi adatbázist használjuk most a feladataink tartós (persist) eltárolására. Ide
+        kívánkozik ugyanakkor, hogy a böngészők privát módjánál (így a Firefoxnál alapból) a localStorage is úgy
+        működik, mint a sessionStorage, azaz nem tárol csak az adott munkamenet alatt. Ettől függetlenül a közösség
+        érdekében mindenki használjon Firefox-ot.</p>
+    <h2 id="html-kód">HTML kód</h2>
+    <p>Behúzzuk a font-awesome-ot a kuka ikon miatt. Az oldal 4 nagyobb különálló div-re tagozódik. A todo__header-ben a
+        dátumok mellett lesz egy form, hogy egybe fogja a beviteli inputot és a beviteli button-t. Azért jó form-ot
+        használni mert ekkor input ENTER-rel és a plusz gombbal is el tud majd menni a bevitt feladat egyetlen
+        eseményfigyelőn keresztül.
+        A pending, azaz elvégzendő feladatok azért vannak kikommentelve, mert ezeket a feladatokat majd mindig a JS
+        hajtja végre, minden esetben újra és újra elő lesznek állítva (renderelve) a feladat divek.</p>
+    <pre><code class="language-html"><div><span class="hljs-meta">&lt;!DOCTYPE <span class="hljs-meta-keyword">html</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">html</span> <span class="hljs-attr">lang</span>=<span class="hljs-string">&quot;en&quot;</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">head</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">meta</span> <span class="hljs-attr">charset</span>=<span class="hljs-string">&quot;UTF-8&quot;</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">meta</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;viewport&quot;</span> <span class="hljs-attr">content</span>=<span class="hljs-string">&quot;width=device-width, initial-scale=1.0&quot;</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">title</span>&gt;</span>To do list<span class="hljs-tag">&lt;/<span class="hljs-name">title</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">link</span> <span class="hljs-attr">rel</span>=<span class="hljs-string">&quot;stylesheet&quot;</span> <span class="hljs-attr">href</span>=<span class="hljs-string">&quot;https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css&quot;</span>
+        <span class="hljs-attr">integrity</span>=<span class="hljs-string">&quot;sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN&quot;</span> <span class="hljs-attr">crossorigin</span>=<span class="hljs-string">&quot;anonymous&quot;</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">link</span> <span class="hljs-attr">rel</span>=<span class="hljs-string">&quot;stylesheet&quot;</span> <span class="hljs-attr">href</span>=<span class="hljs-string">&quot;style.css&quot;</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">head</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">body</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">h1</span>&gt;</span>Daily To-Do list manager<span class="hljs-tag">&lt;/<span class="hljs-name">h1</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">&quot;todo-container&quot;</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">&quot;todo__header&quot;</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">h2</span> <span class="hljs-attr">class</span>=<span class="hljs-string">&quot;day&quot;</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">h2</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">h2</span> <span class="hljs-attr">class</span>=<span class="hljs-string">&quot;date&quot;</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">h2</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">form</span> <span class="hljs-attr">class</span>=<span class="hljs-string">&quot;input-box&quot;</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">class</span>=<span class="hljs-string">&quot;input&quot;</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;text&quot;</span> <span class="hljs-attr">placeholder</span>=<span class="hljs-string">&quot;Take the garbage out&quot;</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;submit&quot;</span> <span class="hljs-attr">class</span>=<span class="hljs-string">&quot;add&quot;</span>&gt;</span>+<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-name">form</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>You have <span class="hljs-tag">&lt;<span class="hljs-name">span</span> <span class="hljs-attr">class</span>=<span class="hljs-string">&quot;pending-count&quot;</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">span</span>&gt;</span> pending items<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">&quot;chill&quot;</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+
+        <span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">&quot;pending-todos-box&quot;</span>&gt;</span>
+            <span class="hljs-comment">&lt;!-- &lt;div class=&quot;todo&quot; data-id=&quot;123456789&quot;&gt;
+                &lt;div class=&quot;input-label-box&quot;&gt;
+                    &lt;input type=&quot;checkbox&quot;&gt;
+                    &lt;label&gt;Task for today&lt;/label&gt;
+                &lt;/div&gt;
+                &lt;span class=&quot;trash&quot;&gt;&lt;/span&gt;
+            &lt;/div&gt; --&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+
+        <span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">&quot;completed-todos-box hide&quot;</span>&gt;</span>
+            <span class="hljs-comment">&lt;!-- &lt;p&gt;Completed tasks: 50%&lt;/p&gt; --&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+
+        <span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">&quot;todo__footer&quot;</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">class</span>=<span class="hljs-string">&quot;hide-completed&quot;</span>&gt;</span>Show Complete<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">class</span>=<span class="hljs-string">&quot;clear&quot;</span>&gt;</span>Clear All<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+
+    <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">script</span> <span class="hljs-attr">src</span>=<span class="hljs-string">&quot;main.js&quot;</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">body</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">html</span>&gt;</span>
+</div></code></pre>
+    <h2 id="css-kód">CSS kód</h2>
+    <p>Ezt az alap beállítást majd minden esetben használom, a CSS guruk azt mondják, hogy pseudo elemek esetén ez a
+        korrekt box-sizing beállítás. A body-t is jó általában kifeszíteni, mert önmagában nincs magassága, csak a
+        gyerek elemek miatt.</p>
+    <pre><code class="language-css"><div>* {
+    <span class="hljs-attribute">margin</span>: <span class="hljs-number">0</span>;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">0</span>;
+}
+*, *<span class="hljs-selector-pseudo">::before</span>, *<span class="hljs-selector-pseudo">::after</span> {
+    <span class="hljs-attribute">box-sizing</span>: inherit;
+}
+<span class="hljs-selector-tag">html</span> {
+    <span class="hljs-attribute">box-sizing</span>: border-box;
+}
+<span class="hljs-selector-tag">body</span> {
+    <span class="hljs-attribute">min-height</span>: <span class="hljs-number">100vh</span>;
+    <span class="hljs-attribute">font-family</span>: sans-serif;
+    <span class="hljs-attribute">background</span>: <span class="hljs-built_in">linear-gradient</span>(violet, green);
+    <span class="hljs-attribute">color</span>: <span class="hljs-built_in">rgba</span>(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>,.<span class="hljs-number">4</span>);
+}
+</div></code></pre>
+    <p>Ezek layout beállítások.</p>
+    <pre><code class="language-css"><div><span class="hljs-selector-tag">h1</span> {
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">2rem</span>;
+    <span class="hljs-attribute">text-align</span>: center;
+    <span class="hljs-attribute">color</span>: <span class="hljs-number">#fff</span>;
+}
+<span class="hljs-selector-tag">h2</span> {
+    <span class="hljs-attribute">color</span>: <span class="hljs-built_in">rgba</span>(<span class="hljs-number">255</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>, .<span class="hljs-number">5</span>);
+    <span class="hljs-attribute">font-weight</span>: <span class="hljs-number">500</span>;
+}
+<span class="hljs-selector-tag">p</span> {
+    <span class="hljs-attribute">margin</span>: <span class="hljs-number">0.5rem</span> <span class="hljs-number">0</span>;
+}
+<span class="hljs-selector-class">.day</span> {
+    <span class="hljs-attribute">margin-top</span>: <span class="hljs-number">1rem</span>;
+}
+</div></code></pre>
+    <p>A fő containert a 'margin: 0 auto' állítja középre és a flex miatt tudjuk majd a benne lévő elemeket könnyedén
+        mozgatni.</p>
+    <pre><code class="language-css"><div><span class="hljs-selector-class">.todo-container</span> {
+    <span class="hljs-attribute">width</span>: <span class="hljs-number">30rem</span>;
+    <span class="hljs-attribute">height</span>: <span class="hljs-number">82vh</span>;
+    <span class="hljs-attribute">border-radius</span>: <span class="hljs-number">3px</span>;
+    <span class="hljs-attribute">background-color</span>: <span class="hljs-number">#ececec</span>;
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">justify-content</span>: space-between;
+    <span class="hljs-attribute">flex-direction</span>: column;
+    <span class="hljs-attribute">margin</span>: <span class="hljs-number">0</span> auto;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">1.5rem</span>;
+}
+</div></code></pre>
+    <p>A form (.input-box) flex tulajdonsága miatt tudjuk a gyerek beviteli input mezőt a 'flex:1'-el kifeszíteni és
+        megformázzuk benne a placeholder-t.</p>
+    <pre><code class="language-css"><div><span class="hljs-selector-class">.input-box</span> {
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">margin-top</span>: <span class="hljs-number">1rem</span>;
+}
+<span class="hljs-selector-class">.input</span> {
+    <span class="hljs-attribute">flex</span>: <span class="hljs-number">1</span>;
+    <span class="hljs-attribute">margin-right</span>: <span class="hljs-number">0.5rem</span>;
+    <span class="hljs-attribute">padding-left</span>: <span class="hljs-number">0.5rem</span>;
+    <span class="hljs-attribute">border</span>: <span class="hljs-number">1px</span> solid <span class="hljs-built_in">rgba</span>(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>,.<span class="hljs-number">3</span>);
+    <span class="hljs-attribute">font-style</span>: italic;
+    <span class="hljs-attribute">color</span>: <span class="hljs-built_in">rgba</span>(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>,.<span class="hljs-number">3</span>);
+    <span class="hljs-attribute">border-radius</span>: <span class="hljs-number">3px</span>;
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">1rem</span>;
+}
+</div></code></pre>
+    <p>Az elvégzendő feladatok div felveszi a rendelkezésére álló összes helyet (flex:1) és az egyes feladatok div-jében
+        pedig azért használunk position:relativ-et, hogy a pseudo elemet majd tudjuk mozgatni hozzá képest. A show-in
+        class majd a legelső feladat elemre vonatkozik, mert az majd ezzel az animációval fog megérkezni.</p>
+    <pre><code class="language-css"><div><span class="hljs-selector-class">.pending-todos-box</span> {
+    <span class="hljs-attribute">flex</span>: <span class="hljs-number">1</span>;
+}
+<span class="hljs-selector-class">.show-in</span> {
+    <span class="hljs-attribute">animation-name</span>: show-in;
+    <span class="hljs-attribute">animation-duration</span>: <span class="hljs-number">1s</span>;
+} 
+<span class="hljs-selector-class">.todo</span> {
+    <span class="hljs-attribute">background-color</span>: <span class="hljs-built_in">rgba</span>(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>,.<span class="hljs-number">1</span>);
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">0.5rem</span>;
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">justify-content</span>: space-between;
+    <span class="hljs-attribute">align-items</span>: center;
+    <span class="hljs-attribute">margin-top</span>: <span class="hljs-number">0.5rem</span>;
+    <span class="hljs-attribute">position</span>: relative;
+    
+}
+<span class="hljs-selector-class">.input-label-box</span> {
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">align-items</span>: center;
+}
+<span class="hljs-keyword">@keyframes</span> show-in {
+    0%{
+        <span class="hljs-attribute">opacity</span>: <span class="hljs-number">0</span>;
+        <span class="hljs-attribute">width</span>: <span class="hljs-number">0</span>
+    }
+    100% {
+        <span class="hljs-attribute">opacity</span>: <span class="hljs-number">1</span>;
+        <span class="hljs-attribute">width</span>: <span class="hljs-number">100%</span>;
+    }
+}
+</div></code></pre>
+    <p>A kukát most egy pseudo elemmel hozzuk létre, ez egy font-awesome-elem, ezért a content unicode mellett most a
+        FontAwesome font-family-t is használni kell. Az input végi beigazításhoz kell a position:absolut és a right:0 és
+        a line-height-al állítjuk a kukát függőleges irányban középre, mégpedig úgy hogy a szülő elem magasságát adjuk
+        neki, ilyenkor a karakter (jelen esetben ikon) középre kerül.</p>
+    <pre><code class="language-css"><div><span class="hljs-selector-class">.todo</span><span class="hljs-selector-pseudo">:hover.todo</span><span class="hljs-selector-pseudo">::after</span> {
+    <span class="hljs-attribute">position</span>: absolute;
+    <span class="hljs-attribute">content</span>: <span class="hljs-string">&quot;\f014&quot;</span>;
+    <span class="hljs-attribute">font-family</span>: FontAwesome;
+    <span class="hljs-attribute">right</span>: <span class="hljs-number">0</span>;
+    <span class="hljs-attribute">background-color</span>: red;
+    <span class="hljs-attribute">height</span>: <span class="hljs-number">100%</span>;
+    <span class="hljs-attribute">width</span>: <span class="hljs-number">2.5rem</span>;
+    <span class="hljs-attribute">cursor</span>: pointer;
+    <span class="hljs-attribute">text-align</span>: center;
+    <span class="hljs-attribute">line-height</span>: <span class="hljs-number">2.5rem</span>;
+    <span class="hljs-attribute">color</span>: <span class="hljs-number">#fff</span>;
+    <span class="hljs-attribute">animation-name</span>: fade-in;
+    <span class="hljs-attribute">animation-duration</span>: <span class="hljs-number">1s</span>;
+}
+<span class="hljs-keyword">@keyframes</span> fade-in {
+    0% {
+        <span class="hljs-attribute">width</span>: <span class="hljs-number">0</span>;
+        <span class="hljs-attribute">content</span>:<span class="hljs-string">&#x27;&#x27;</span>;
+    }
+    100% {
+        <span class="hljs-attribute">width</span>: <span class="hljs-number">2.5rem</span>;
+        <span class="hljs-attribute">content</span>: <span class="hljs-string">&quot;\f014&quot;</span>;
+    }
+}
+</div></code></pre>
+    <p>Mivel a pseudo elemet nem tudjuk kattintani, ezért a kuka felé rakunk egy span elemet, amire majd felírjuk az
+        eseménykezelőt.</p>
+    <pre><code class="language-css"><div><span class="hljs-selector-class">.trash</span> {
+    <span class="hljs-attribute">width</span>: <span class="hljs-number">2.5rem</span>;
+    <span class="hljs-attribute">height</span>: <span class="hljs-number">1.5rem</span>;
+    <span class="hljs-attribute">z-index</span>: <span class="hljs-number">10</span>;
+    <span class="hljs-attribute">cursor</span>: pointer;
+}
+</div></code></pre>
+    <p>A következő elemek a feladat pipa négyzetek és a bepipálás design-olására szolgálnak. A bepipálás is egy pseudo
+        elemmel történik, mégpedig úgy, hogy amikor megtörténik a bepipálás, akkor az eredeti design eltűnik és
+        rajzolunk egy újat a \2713-as unicode-al.</p>
+    <pre><code class="language-css"><div><span class="hljs-selector-tag">input</span><span class="hljs-selector-attr">[type=<span class="hljs-string">&#x27;checkbox&#x27;</span>]</span> {
+    <span class="hljs-attribute">width</span>: <span class="hljs-number">1.5rem</span>;
+    <span class="hljs-attribute">height</span>: <span class="hljs-number">1.5rem</span>;
+    <span class="hljs-attribute">cursor</span>: pointer;
+}
+<span class="hljs-selector-tag">input</span><span class="hljs-selector-attr">[type=<span class="hljs-string">&#x27;checkbox&#x27;</span>]</span><span class="hljs-selector-pseudo">:checked</span> {
+    <span class="hljs-attribute">display</span>: none;
+}
+<span class="hljs-selector-tag">input</span><span class="hljs-selector-attr">[type=<span class="hljs-string">&#x27;checkbox&#x27;</span>]</span><span class="hljs-selector-pseudo">:checked</span> + <span class="hljs-selector-tag">label</span><span class="hljs-selector-pseudo">::before</span> {
+    <span class="hljs-attribute">content</span>: <span class="hljs-string">&#x27;\2713&#x27;</span>;
+    <span class="hljs-attribute">color</span>: red;
+    <span class="hljs-attribute">background-color</span>: <span class="hljs-built_in">rgba</span>(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>,.<span class="hljs-number">01</span>);
+    <span class="hljs-attribute">text-align</span>: center;
+    <span class="hljs-attribute">display</span>: inline-block;
+    <span class="hljs-attribute">width</span>: <span class="hljs-number">1.5rem</span>;
+    <span class="hljs-attribute">margin-right</span>: .<span class="hljs-number">5rem</span>;
+    <span class="hljs-attribute">border</span>: <span class="hljs-number">1px</span> solid <span class="hljs-built_in">rgba</span>(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>,.<span class="hljs-number">3</span>);
+    <span class="hljs-attribute">font-weight</span>: <span class="hljs-number">900</span>;
+}
+<span class="hljs-selector-tag">label</span> {
+    <span class="hljs-attribute">margin-left</span>: <span class="hljs-number">0.5rem</span>;
+}
+<span class="hljs-selector-tag">input</span><span class="hljs-selector-attr">[type=<span class="hljs-string">&#x27;checkbox&#x27;</span>]</span><span class="hljs-selector-pseudo">:checked</span> + <span class="hljs-selector-tag">label</span> {
+    <span class="hljs-attribute">margin-left</span>: <span class="hljs-number">0</span>;
+    <span class="hljs-attribute">text-decoration</span>: line-through;
+}
+</div></code></pre>
+    <p>A gombokkal kapcsolatos design.</p>
+    <pre><code class="language-css"><div><span class="hljs-selector-tag">button</span> {
+    <span class="hljs-attribute">border</span>: none;
+    <span class="hljs-attribute">background</span>: none;
+    <span class="hljs-attribute">font-weight</span>: <span class="hljs-number">700</span>;
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">1rem</span>;
+    <span class="hljs-attribute">cursor</span>: pointer;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">0.5rem</span> <span class="hljs-number">1.5rem</span>;
+    <span class="hljs-attribute">border-radius</span>: <span class="hljs-number">3px</span>;
+}
+<span class="hljs-selector-tag">button</span><span class="hljs-selector-pseudo">:not(</span><span class="hljs-selector-attr">[type=submit]</span>) {
+    <span class="hljs-attribute">margin-top</span>: <span class="hljs-number">0.3rem</span>;
+}
+<span class="hljs-selector-class">.add</span> {
+    <span class="hljs-attribute">background-color</span>: <span class="hljs-built_in">rgba</span>(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>,.<span class="hljs-number">1</span>);
+    <span class="hljs-attribute">color</span>: <span class="hljs-number">#fff</span>;
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">1.5rem</span>;
+}
+<span class="hljs-selector-class">.add</span><span class="hljs-selector-pseudo">:hover</span> {
+    <span class="hljs-attribute">background-color</span>: royalblue;
+}
+<span class="hljs-selector-class">.hide-completed</span><span class="hljs-selector-pseudo">:hover</span>, <span class="hljs-selector-class">.clear</span><span class="hljs-selector-pseudo">:hover</span> {
+    <span class="hljs-attribute">background-color</span>: <span class="hljs-built_in">rgba</span>(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>,.<span class="hljs-number">15</span>);
+    <span class="hljs-attribute">color</span>: <span class="hljs-number">#fff</span>;
+}
+<span class="hljs-selector-class">.todo__footer</span> {
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">justify-content</span>: center;
+}
+</div></code></pre>
+    <p>Néhány JS mozgatással kapcsolatos CSS.</p>
+    <pre><code class="language-css"><div><span class="hljs-selector-class">.hide</span> {
+    <span class="hljs-attribute">display</span>: none;
+}
+<span class="hljs-selector-class">.checked</span> {
+    <span class="hljs-attribute">background-color</span>: <span class="hljs-number">#fff</span>;
+}
+</div></code></pre>
+    <p>A pihenővel (.chill), üres feladatokkal kapcsolatos osztályok.</p>
+    <pre><code class="language-css"><div><span class="hljs-selector-class">.chilldesign</span> {
+    <span class="hljs-attribute">flex</span>: <span class="hljs-number">1</span>;
+    <span class="hljs-attribute">text-align</span>: center;
+    <span class="hljs-attribute">font-weight</span>: <span class="hljs-number">900</span>;
+    <span class="hljs-attribute">color</span>: <span class="hljs-number">#000000</span>;
+    <span class="hljs-attribute">display</span>: flex;
+    <span class="hljs-attribute">flex-direction</span>: column;
+    <span class="hljs-attribute">justify-content</span>: center;
+    <span class="hljs-attribute">align-items</span>: center;
+}
+<span class="hljs-selector-class">.emoji</span> {
+    <span class="hljs-attribute">font-size</span>: <span class="hljs-number">5rem</span>;
+    <span class="hljs-attribute">margin</span>: <span class="hljs-number">1rem</span>;
+}
+</div></code></pre>
+    <h2 id="js-kód">JS kód</h2>
+    <p>Írjuk fel először a DOM elemeket, melyekre hivatkozni fogunk, melyekkel feladatokat fogunk végezni, és beállíjuk
+        az elvégzendő feladatok számlálójót 0-ra, valamint az összes feladatot tartalmazó tömböt is üres tömbre.</p>
+    <pre><code class="language-js"><div><span class="hljs-keyword">const</span> day = <span class="hljs-built_in">document</span>.querySelector(<span class="hljs-string">&#x27;.day&#x27;</span>);
+<span class="hljs-keyword">const</span> date = <span class="hljs-built_in">document</span>.querySelector(<span class="hljs-string">&#x27;.date&#x27;</span>);
+<span class="hljs-keyword">const</span> input = <span class="hljs-built_in">document</span>.querySelector(<span class="hljs-string">&#x27;.input&#x27;</span>);
+<span class="hljs-keyword">const</span> inputBox = <span class="hljs-built_in">document</span>.querySelector(<span class="hljs-string">&#x27;.input-box&#x27;</span>);
+<span class="hljs-keyword">const</span> pendingCount = <span class="hljs-built_in">document</span>.querySelector(<span class="hljs-string">&#x27;.pending-count&#x27;</span>);
+<span class="hljs-keyword">const</span> pendingTodosBox = <span class="hljs-built_in">document</span>.querySelector(<span class="hljs-string">&#x27;.pending-todos-box&#x27;</span>);
+<span class="hljs-keyword">const</span> completedTodosBox = <span class="hljs-built_in">document</span>.querySelector(<span class="hljs-string">&#x27;.completed-todos-box&#x27;</span>);
+<span class="hljs-keyword">const</span> clearButton = <span class="hljs-built_in">document</span>.querySelector(<span class="hljs-string">&#x27;.clear&#x27;</span>);
+<span class="hljs-keyword">const</span> hideButton = <span class="hljs-built_in">document</span>.querySelector(<span class="hljs-string">&#x27;.hide-completed&#x27;</span>);
+<span class="hljs-keyword">const</span> chill = <span class="hljs-built_in">document</span>.querySelector(<span class="hljs-string">&#x27;.chill&#x27;</span>);
+<span class="hljs-keyword">let</span> count = <span class="hljs-number">0</span>;
+<span class="hljs-keyword">let</span> todos = [];
+</div></code></pre>
+    <p>A dátumokra a toLocaleDateString-gel találunk megoldást, egy objektumban elkérhetjük a csak minket érdeklő
+        dolgokat, jelen esetben a nap hosszú leírását és a másiknál pedig az amerikai formátum kis átalakítással
+        megfelelő lesz.</p>
+    <pre><code class="language-js"><div>day.textContent = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>().toLocaleDateString(<span class="hljs-string">&#x27;en&#x27;</span>, { <span class="hljs-attr">weekday</span>: <span class="hljs-string">&#x27;long&#x27;</span> });
+date.textContent = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>().toLocaleDateString(<span class="hljs-string">&#x27;en-US&#x27;</span>).replaceAll(<span class="hljs-string">&#x27;/&#x27;</span>, <span class="hljs-string">&#x27;-&#x27;</span>);
+</div></code></pre>
+    <p>Kezdhetjük a feladatot azzal, hogy a formból, illetve annak inputjából érkező feladatot először beírjuk a
+        localStorage-ba. Itt sokféle ellenőrzést végezhetnénk regex-ekkel, trim-mellésel, hogy ne legyen benn space vagy
+        akármi nem kívánatos, most csak egy olyan feltételt írtam, hogy ne legyen üres, vagyis ha üresen nyomtuk meg az
+        ENTERT (vagy a plusz gombot), akkor az ne menjen az adatbázisba. Az adatok, feladatok egyediségét sokféleképpen
+        lehetne meghatározni, különféle véletlenszám előállításokkal, itt most az 1970-től számított ms-okat használjuk.
+        A feladat (todo) objektumunk az egyedi id mellett tartalmazza még a feladat nevét(a bevitt szöveget) valamint,
+        hogy elvégzendő vagy már elvégzett. Az adatbázisból aztán létrehozzuk az elemeket, kitöröljük az inputmezőt.
+        Először tehát tegyünk a formra egy eseményfigyelőt, majd aztán adatbázis és utána elem megjelenítés.</p>
+    <pre><code class="language-js"><div>inputBox.addEventListener(<span class="hljs-string">&#x27;submit&#x27;</span>, <span class="hljs-function">(<span class="hljs-params">event</span>) =&gt;</span> {
+    event.preventDefault();
+    addTodos(input.value);
+})
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">addTodos</span>(<span class="hljs-params">inputdata</span>) </span>{
+    <span class="hljs-keyword">if</span> (inputdata !== <span class="hljs-string">&#x27;&#x27;</span>) {
+        <span class="hljs-keyword">const</span> todo = {
+            <span class="hljs-attr">id</span>: <span class="hljs-built_in">Date</span>.now(),
+            <span class="hljs-attr">name</span>: inputdata,
+            <span class="hljs-attr">completed</span>: <span class="hljs-literal">false</span>
+        }
+        todos.push(todo);
+        handleCount(todos);
+        addToLocalStorage(todos);
+        input.value = <span class="hljs-string">&#x27;&#x27;</span>;
+        pendingTodosBox.firstChild.classList.add(<span class="hljs-string">&#x27;show-in&#x27;</span>);
+    }
+}
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">addToLocalStorage</span>(<span class="hljs-params">todos</span>) </span>{
+    <span class="hljs-built_in">localStorage</span>.setItem(<span class="hljs-string">&#x27;todos&#x27;</span>, <span class="hljs-built_in">JSON</span>.stringify(todos));
+    createTodosElement(todos);
+}
+</div></code></pre>
+    <p>Az elem megjelenítés folyamata először a meglévő elemek kiradírozása, aztán az adatbázisból megkapott adatok
+        alapján a HTML elemek megrajzolása, kiválasztva közben, hogy a feladat már elvégzett vagy elvégzendő és a végén
+        kiszámoljuk és megjelenítjük, hogy mennyi feladat van már elvégezve. A feladatok HTML ragasztásánál most az
+        append helyett a prepend-et használjuk, hogy felülre kerüljön mindig a bevitt új elem.</p>
+    <pre><code class="language-js"><div><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createTodosElement</span>(<span class="hljs-params">todosArray</span>) </span>{
+    pendingTodosBox.innerHTML = <span class="hljs-string">&#x27;&#x27;</span>;
+    completedTodosBox.innerHTML = <span class="hljs-string">&#x27;&#x27;</span>;
+    todosArray.forEach(<span class="hljs-function"><span class="hljs-params">todo</span> =&gt;</span> {
+        <span class="hljs-keyword">const</span> checked = todo.completed ? <span class="hljs-string">&#x27;checked&#x27;</span> : <span class="hljs-literal">null</span>;
+        <span class="hljs-keyword">const</span> TodosBoxElement = <span class="hljs-built_in">document</span>.createElement(<span class="hljs-string">&quot;div&quot;</span>);
+        TodosBoxElement.classList.add(<span class="hljs-string">&#x27;todo&#x27;</span>);
+        TodosBoxElement.setAttribute(<span class="hljs-string">&#x27;data-id&#x27;</span>, todo.id);
+        <span class="hljs-keyword">if</span> (todo.completed) { TodosBoxElement.classList.add(<span class="hljs-string">&#x27;checked&#x27;</span>) }
+        TodosBoxElement.innerHTML = <span class="hljs-string">`
+                &lt;div class=&quot;input-label-box&quot;&gt;
+                    &lt;input type=&quot;checkbox&quot; <span class="hljs-subst">${checked}</span>&gt;
+                    &lt;label&gt;<span class="hljs-subst">${todo.name}</span>&lt;/label&gt;
+                &lt;/div&gt;
+                &lt;span class=&quot;trash&quot;&gt;&lt;/span&gt;
+         `</span>;
+        todo.completed ? completedTodosBox.prepend(TodosBoxElement) : pendingTodosBox.prepend(TodosBoxElement);
+    });
+    createCompletedTitle();
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createCompletedTitle</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">const</span> completedTitle = <span class="hljs-built_in">document</span>.createElement(<span class="hljs-string">&#x27;p&#x27;</span>);
+    completedTitle.textContent = <span class="hljs-string">`Completed tasks: <span class="hljs-subst">${<span class="hljs-built_in">Math</span>.round((todos.length - count) * <span class="hljs-number">100</span> / todos.length)}</span>%`</span>
+    completedTodosBox.prepend(completedTitle);
+}
+</div></code></pre>
+    <p>A clear gombra teszünk egy eseményfigyelőt, melynek a belső függvényében az elvégzett feladatokat válogatjuk le
+        és tesszük a localStorage-ba, ezzel átételesen kitöröljük a még nem elvégzett feladatokat.</p>
+    <pre><code class="language-js"><div>clearButton.addEventListener(<span class="hljs-string">&#x27;click&#x27;</span>, <span class="hljs-function">() =&gt;</span> {
+    clearPendingElements();
+})
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">clearPendingElements</span>(<span class="hljs-params"></span>) </span>{
+    todos = todos.filter(<span class="hljs-function"><span class="hljs-params">item</span> =&gt;</span> {
+        <span class="hljs-keyword">return</span> item.completed === <span class="hljs-literal">true</span>;
+    });
+    handleCount(todos);
+    addToLocalStorage(todos);
+}
+</div></code></pre>
+    <p>A show/hide gomra is rakunk egy eseményfigyelőt, ez a szokásos hide class mozgatás, mivel click eseményről van
+        szó, a remove/add páros helyett használható a classList.toggle is.</p>
+    <pre><code class="language-js"><div>hideButton.addEventListener(<span class="hljs-string">&#x27;click&#x27;</span>, <span class="hljs-function">() =&gt;</span> {
+    completedTodosBox.classList.toggle(<span class="hljs-string">&#x27;hide&#x27;</span>);
+    completedTodosBox.classList.contains(<span class="hljs-string">&#x27;hide&#x27;</span>) ? hideButton.textContent = <span class="hljs-string">&#x27;Show Complete&#x27;</span> : hideButton.textContent = <span class="hljs-string">&#x27;Hide Complete&#x27;</span>;
+})
+</div></code></pre>
+    <p>A checkboxra és a kukára egy eseményfigyelőt teszünk és pedig az elvégzendő feladatok div-re, mert a feladatra
+        nem tehetünk, mert amennyiben nincs semmilyen feladat, akkor az ahhoz kapcsolódó DOM elemet nem tudná felírni a
+        JS és megakadna. A kuka törlést felírtam a már elvégzett feladatokra is. A checbox bepipálás esetén
+        megváltoztatjuk a feladat státuszát elvégzettre, a kuka esetén pedig töröljük. A megjelölt feladatot a data-id-n
+        keresztül párosítjuk az adatbázisban található párjához.</p>
+    <pre><code class="language-js"><div>pendingTodosBox.addEventListener(<span class="hljs-string">&#x27;click&#x27;</span>, <span class="hljs-function">(<span class="hljs-params">event</span>) =&gt;</span> {
+    <span class="hljs-keyword">if</span> (event.target.type === <span class="hljs-string">&#x27;checkbox&#x27;</span>) {
+        changeCompleted(<span class="hljs-built_in">parseInt</span>(event.target.parentElement.parentElement.getAttribute(<span class="hljs-string">&#x27;data-id&#x27;</span>)))
+    }
+    <span class="hljs-keyword">if</span> (event.target.classList.contains(<span class="hljs-string">&#x27;trash&#x27;</span>)) {
+        deleteTodo(<span class="hljs-built_in">parseInt</span>(event.target.parentElement.getAttribute(<span class="hljs-string">&#x27;data-id&#x27;</span>)));
+    }
+})
+completedTodosBox.addEventListener(<span class="hljs-string">&#x27;click&#x27;</span>, <span class="hljs-function">(<span class="hljs-params">event</span>) =&gt;</span> {
+    <span class="hljs-keyword">if</span> (event.target.classList.contains(<span class="hljs-string">&#x27;trash&#x27;</span>)) {
+        deleteTodo(<span class="hljs-built_in">parseInt</span>(event.target.parentElement.getAttribute(<span class="hljs-string">&#x27;data-id&#x27;</span>)));
+    }
+})
+</div></code></pre>
+    <p>A két belső függvény.</p>
+    <pre><code class="language-js"><div><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">changeCompleted</span>(<span class="hljs-params">id</span>) </span>{
+    todos.forEach(<span class="hljs-function"><span class="hljs-params">item</span> =&gt;</span> {
+        <span class="hljs-keyword">if</span> (item.id == id) {
+            item.completed = !item.completed;
+        }
+    });
+    handleCount(todos);
+    addToLocalStorage(todos);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deleteTodo</span>(<span class="hljs-params">id</span>) </span>{
+    todos = todos.filter(<span class="hljs-function"><span class="hljs-params">item</span> =&gt;</span> {
+        <span class="hljs-keyword">return</span> item.id !== id;
+    })
+    handleCount(todos);
+    addToLocalStorage(todos);
+}
+</div></code></pre>
+    <p>A handleCount() figyeli, hogy az elvégzendő feladatok nem ürültek-e ki, mert akkor mehetünk chill állapotba. Ha
+        viszont van elvégzendő feladat, akkor az esetleges korábbi chill állapotot töröljük.</p>
+    <pre><code class="language-js"><div><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">handleCount</span>(<span class="hljs-params">todos</span>) </span>{
+    count = todos.filter(<span class="hljs-function"><span class="hljs-params">item</span> =&gt;</span> item.completed === <span class="hljs-literal">false</span>).length;
+    <span class="hljs-keyword">if</span> (count === <span class="hljs-number">0</span>) {
+        timeToChill();
+        pendingCount.parentElement.classList.add(<span class="hljs-string">&#x27;hide&#x27;</span>);
+    } <span class="hljs-keyword">else</span> {
+        pendingCount.parentElement.classList.remove(<span class="hljs-string">&#x27;hide&#x27;</span>);
+        chill.textContent = <span class="hljs-string">&#x27;&#x27;</span>;
+        chill.classList.remove(<span class="hljs-string">&#x27;chilldesign&#x27;</span>);
+        pendingCount.textContent = count;
+        clearButton.classList.remove(<span class="hljs-string">&#x27;hide&#x27;</span>);
+        hideButton.classList.remove(<span class="hljs-string">&#x27;hide&#x27;</span>);
+    }
+}
+</div></code></pre>
+    <p>A timeToChill() elrejti az elvégzett feladatokat, berakunk egy emojit és töröljük alulról a két gombot is.</p>
+    <pre><code class="language-js"><div><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">timeToChill</span>(<span class="hljs-params"></span>) </span>{
+    completedTodosBox.classList.add(<span class="hljs-string">&#x27;hide&#x27;</span>);
+    hideButton.textContent = <span class="hljs-string">&#x27;Show Complete&#x27;</span>;
+    chill.innerHTML = <span class="hljs-string">`&lt;span class=&quot;emoji&quot;&gt;🍻&lt;/span&gt;
+    Time to chill! You have no todos.`</span>;
+    chill.classList.add(<span class="hljs-string">&#x27;chilldesign&#x27;</span>);
+    clearButton.classList.add(<span class="hljs-string">&#x27;hide&#x27;</span>);
+    hideButton.classList.add(<span class="hljs-string">&#x27;hide&#x27;</span>);
+}
+</div></code></pre>
+    <p>A legvégén megoldjuk az első indítás kérdését, amikor is ha már van valami a localStorage-ban, akkor azzal
+        feltöltjük a todo list-ünket. Ezt érdemes rögtön a dátumok után tenni a kódba.</p>
+    <pre><code class="language-js"><div>getFromLocalStorage();
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getFromLocalStorage</span>(<span class="hljs-params"></span>) </span>{
+    todos = <span class="hljs-built_in">JSON</span>.parse(<span class="hljs-built_in">localStorage</span>.getItem(<span class="hljs-string">&#x27;todos&#x27;</span>)) || [];
+    handleCount(todos);
+    createTodosElement(todos);
+}
+</div></code></pre>
+    <p>Itt a vége: TIME TO CHILL!!!!</p>
+    <a href="https://github.com/czetoj/todo">
+        <p>A teljes kód egyben a GitHub-on.</p>
+    </a>
+
+</body>
+
+</html>
